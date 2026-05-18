@@ -71,15 +71,18 @@ Two fine-grained PATs. NARROW SCOPING IS CRITICAL - the bot only writes 2 file p
 
 ---
 
-## Section 3 - Anthropic API key
+## Section 3 - OpenRouter API key
 
-You already have one (used by the ZAOcoworkingBot). Either:
-- Reuse the existing key, or
-- Generate a new one tagged "zaoscribe" for cost-tracking
+ZAOscribe uses OpenRouter (OpenAI-compatible API) as the gateway for extraction. Single key, Anthropic Haiku/Opus models under the hood (and easy fallback to other providers later via a one-line config change).
 
-Save as `ANTHROPIC_API_KEY`.
+1. https://openrouter.ai/keys
+2. Sign in (Google/GitHub/email)
+3. Top up some credits at https://openrouter.ai/credits (start with $10; ZAOscribe burns ~$1/month at 10 captures/day)
+4. Click **Create Key**, name it `zaoscribe`
+5. Optional but recommended: set a per-key spend cap so a runaway can't drain your wallet. Suggestion: $5/month soft cap, $20/month hard cap.
+6. Copy the key (starts with `sk-or-v1-...`) -> save as `OPENROUTER_API_KEY`
 
-Budget expectation: ~$1/month at 10 captures/day. Set a $10/month soft cap as a tripwire.
+The cascade defaults to `anthropic/claude-haiku-4-5` first, escalates to `anthropic/claude-opus-4-7` on low-confidence transcripts. Change models in `agent/src/llm/openrouter.ts` if you ever want to switch providers.
 
 ---
 
@@ -117,10 +120,10 @@ chmod +x scripts/install-whisper.sh
 cp .env.example .env
 chmod 600 .env
 vi .env
-# Paste in all 6 required vars from sections 1-4 above
+# Paste in all 7 required vars from sections 1-4 above
 # (DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_GUILD_ID, DISCORD_COWORKING_VC_ID,
-#  ANTHROPIC_API_KEY, COWORK_GITHUB_TOKEN, ZAOSCRIBE_GITHUB_TOKEN)
-# Optional: OPENAI_API_KEY
+#  OPENROUTER_API_KEY, COWORK_GITHUB_TOKEN, ZAOSCRIBE_GITHUB_TOKEN)
+# Optional: OPENAI_API_KEY  (Whisper fallback)
 
 # 5. Install node deps
 cd /root/zaoscribe/agent
@@ -218,9 +221,10 @@ For now, members can use `/scribe start` in any other VC they want captured.
 ### Cost monitoring
 
 ```bash
-# Anthropic usage dashboard:
-#   https://console.anthropic.com/settings/usage
+# OpenRouter usage dashboard:
+#   https://openrouter.ai/activity
 # Look for the days when ZAOscribe was active. Cascade keeps ~70% on Haiku.
+# Per-key spend caps live at https://openrouter.ai/keys -> Edit on your zaoscribe key.
 
 # OpenAI Whisper fallback usage:
 #   https://platform.openai.com/usage

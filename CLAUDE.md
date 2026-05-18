@@ -14,7 +14,7 @@ It is a SIBLING bot to `@ZAOcoworkingBot` (the Telegram action tracker). They sh
 
 - Node 22+, TypeScript 5.6, ES2022, ESM
 - discord.js v14.16+ + @discordjs/voice v0.18+ + @discordjs/opus
-- @anthropic-ai/sdk
+- openai SDK (pointed at OpenRouter's OpenAI-compatible endpoint)
 - @octokit/rest v21
 - node-cron
 - dotenv
@@ -57,7 +57,7 @@ discord.js voiceStateUpdate / interactionCreate
 
 ## Safety
 
-- NEVER expose `DISCORD_TOKEN`, `ANTHROPIC_API_KEY`, `COWORK_GITHUB_TOKEN`, `ZAOSCRIBE_GITHUB_TOKEN`, `OPENAI_API_KEY` (fallback)
+- NEVER expose `DISCORD_TOKEN`, `OPENROUTER_API_KEY`, `COWORK_GITHUB_TOKEN`, `ZAOSCRIBE_GITHUB_TOKEN`, `OPENAI_API_KEY` (fallback)
 - Hard-coded `GUILD_ID` env check at startup - bot refuses to operate in any other guild
 - Filter `member.user.bot === true` before subscribing to anyone's audio
 - Roster gate before any audio capture (only Zaal/Iman/ThyRev/Samantha)
@@ -78,12 +78,12 @@ Owners: `['Zaal', 'Iman', 'Both', 'ThyRev', 'Samantha', 'Open']` (matches cowork
 
 ## Cost Model
 
-Anthropic cascade is the main spend:
-- Haiku 4.5: $0.20 / $1.00 per M tok
-- Opus 4.7: $15 / $75 per M tok
-- ~60% of transcripts handled by Haiku alone
+OpenRouter cascade (Anthropic models, +~5% OpenRouter markup) is the main spend:
+- anthropic/claude-haiku-4-5: $0.21 / $1.05 per M tok (with OR markup)
+- anthropic/claude-opus-4-7:  $15.75 / $78.75 per M tok (with OR markup)
+- ~60-70% of transcripts handled by Haiku alone
 
-At 10 captures/day, 90s avg, ~$1/mo. Local Whisper.cpp = $0.
+At 10 captures/day, 90s avg, ~$1-1.05/mo. Local Whisper.cpp = $0.
 
 ## Deployment
 

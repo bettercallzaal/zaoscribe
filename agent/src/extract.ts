@@ -1,21 +1,29 @@
-// Cascade extraction: Haiku 4.5 first, escalate to Opus 4.7 on low confidence
-// / pronoun / relative-date / malformed JSON. Per doc 671 + 673-E decision.
+// Cascade extraction via OpenRouter (Anthropic Haiku 4.5 -> Opus 4.7).
+// Haiku handles ~70% of transcripts; Opus escalation on low confidence,
+// pronouns, relative dates, or malformed JSON.
+//
+// Per doc 671/673-E: tool_choice forces the model to ONLY emit the tool call.
+// OpenRouter forwards this to Anthropic's tool_use feature for these models.
 
-import type Anthropic from '@anthropic-ai/sdk';
-import { getAnthropic, EXTRACT_TOOL, EXTRACTOR_PERSONA } from './llm/anthropic.ts';
+import type OpenAI from 'openai';
+import { getOpenRouter, EXTRACT_TOOL, EXTRACTOR_PERSONA, HAIKU_MODEL, OPUS_MODEL } from './llm/openrouter.ts';
 import type { ExtractedItem, Owner } from './types.ts';
 import { OWNERS } from './types.ts';
-
-const HAIKU = 'claude-haiku-4-5-20251001';
-const OPUS = 'claude-opus-4-7';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const RELATIVE_DATE_TOKENS = /\b(today|tomorrow|next|this|monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|end of)\b/i;
 
-function readToolInput(resp: Anthropic.Message): { items: ExtractedItem[] } | null {
-  for (const block of resp.content) {
-    if (block.type === 'tool_use' && block.name === 'extract_action_items') {
-      return block.input as { items: ExtractedItem[] };
+function readToolInput(resp: OpenAI.Chat.ChatCompletion): { items: ExtractedItem[] } | null {
+  const msg = resp.choices?.[0]?.message;
+  if (!msg) return null;
+  const calls = msg.tool_calls ?? [];
+  for (const call of calls) {
+    if (call.type !== 'function') continue;
+    if (call.function?.name !== 'extract_action_items') continue;
+    try {
+      return JSON.parse(call.function.arguments) as { items: ExtractedItem[] };
+    } catch {
+      return null;
     }
   }
   return null;
@@ -48,13 +56,16 @@ function needsEscalation(items: ExtractedItem[]): { yes: boolean; reasons: strin
 
 async function callModel(model: string, transcript: string, escalationHint?: string): Promise<ExtractedItem[]> {
   const system = EXTRACTOR_PERSONA + (escalationHint ? `\n\n${escalationHint}` : '');
-  const resp = await getAnthropic().messages.create({
+  const resp = await getOpenRouter().chat.completions.create({
     model,
     max_tokens: 2048,
-    system,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: `Transcript:\n\n${transcript}` },
+    ],
     tools: [EXTRACT_TOOL],
-    tool_choice: { type: 'tool', name: 'extract_action_items' },
-    messages: [{ role: 'user', content: `Transcript:\n\n${transcript}` }],
+    // Force this exact tool. OpenRouter forwards to Anthropic's tool_choice.
+    tool_choice: { type: 'function', function: { name: 'extract_action_items' } },
   });
   const out = readToolInput(resp);
   if (!out) return [];
@@ -71,31 +82,30 @@ export interface ExtractionResult {
 export async function extractActionItems(transcript: string): Promise<ExtractionResult> {
   if (!transcript.trim()) return { items: [], modelChain: [], escalationReasons: [] };
 
-  // Tier 1 - Haiku
+  // Tier 1 - Haiku via OpenRouter
   let items: ExtractedItem[] = [];
   try {
-    items = await callModel(HAIKU, transcript);
+    items = await callModel(HAIKU_MODEL, transcript);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn(`[zaoscribe] extract: Haiku failed: ${(err as Error).message} - escalating`);
-    // jump straight to Opus
-    const opusItems = await callModel(OPUS, transcript);
-    return { items: opusItems, modelChain: [HAIKU, OPUS], escalationReasons: ['haiku_error'] };
+    const opusItems = await callModel(OPUS_MODEL, transcript);
+    return { items: opusItems, modelChain: [HAIKU_MODEL, OPUS_MODEL], escalationReasons: ['haiku_error'] };
   }
 
   const { yes, reasons } = needsEscalation(items);
   if (!yes) {
-    return { items, modelChain: [HAIKU], escalationReasons: [] };
+    return { items, modelChain: [HAIKU_MODEL], escalationReasons: [] };
   }
 
-  // Tier 2 - Opus, with hint about WHY we re-asked.
+  // Tier 2 - Opus via OpenRouter, with hint about WHY we re-asked.
   const hint = `The cheaper model returned items flagged for: ${reasons.join(', ')}. Be especially careful with relative dates (resolve to YYYY-MM-DD), pronouns (resolve to a specific Owner), and confidence scoring (under 0.7 for vague intent).`;
   try {
-    const opusItems = await callModel(OPUS, transcript, hint);
-    return { items: opusItems, modelChain: [HAIKU, OPUS], escalationReasons: reasons };
+    const opusItems = await callModel(OPUS_MODEL, transcript, hint);
+    return { items: opusItems, modelChain: [HAIKU_MODEL, OPUS_MODEL], escalationReasons: reasons };
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn(`[zaoscribe] extract: Opus failed after Haiku flag: ${(err as Error).message} - keeping Haiku output`);
-    return { items, modelChain: [HAIKU], escalationReasons: reasons.concat('opus_error') };
+    return { items, modelChain: [HAIKU_MODEL], escalationReasons: reasons.concat('opus_error') };
   }
 }

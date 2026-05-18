@@ -20,8 +20,8 @@ export const CONFIG = {
     guildId: required('DISCORD_GUILD_ID'),
     coworkingVcId: required('DISCORD_COWORKING_VC_ID'),
   },
-  anthropic: {
-    apiKey: required('ANTHROPIC_API_KEY'),
+  openrouter: {
+    apiKey: required('OPENROUTER_API_KEY'),
   },
   github: {
     coworkToken: required('COWORK_GITHUB_TOKEN'),

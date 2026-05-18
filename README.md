@@ -16,7 +16,7 @@ Phases 1-7 implementation complete. Awaiting Discord credentials + VPS deploy. S
   -> .opus per utterance saved to /tmp/zaoscribe-audio/
   -> ffmpeg normalises to 16kHz mono PCM WAV
   -> whisper.cpp ggml-medium.bin transcribes (multilingual)
-  -> Anthropic cascade extracts action items
+  -> OpenRouter cascade extracts action items (Anthropic models)
        (Haiku 4.5 first; Opus 4.7 escalation on low-confidence)
   -> >= 0.8 confidence auto-writes to
        songchaindao-dot/cowork-zaodevz/data/actions.json
@@ -65,7 +65,7 @@ All within budget. Hardware: Hostinger KVM 2 (existing) + 1.5 GB disk for Whispe
 
 - discord.js v14 + @discordjs/voice v0.18 (per-speaker subscribe)
 - Whisper.cpp ggml-medium.bin (1.5 GB, multilingual local)
-- Anthropic SDK + cascade: Haiku 4.5 -> Opus 4.7, `tool_choice: {type: 'tool', name: 'extract_action_items'}`
+- OpenRouter (OpenAI-compatible) + cascade: anthropic/claude-haiku-4-5 -> anthropic/claude-opus-4-7, `tool_choice` forced
 - @octokit/rest v21 (SHA-dance on cowork-zaodevz/data/actions.json)
 - node-cron (24h audio sweep)
 - TypeScript 5.6, ES2022, node 22+
