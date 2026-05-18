@@ -1,0 +1,21 @@
+[Unit]
+Description=ZAOscribe - Discord audio capture bot
+Documentation=https://github.com/bettercallzaal/zaoscribe
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/zaoscribe/agent
+ExecStart=/usr/bin/env npx tsx src/index.ts
+EnvironmentFile=%h/zaoscribe/.env
+Restart=on-failure
+RestartSec=10s
+# Belt-and-suspenders for raw-audio leak protection - 24h cron is the primary.
+ExecStopPost=/bin/sh -c 'rm -rf /tmp/zaoscribe-audio || true'
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zaoscribe
+
+[Install]
+WantedBy=default.target
