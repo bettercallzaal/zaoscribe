@@ -4,7 +4,7 @@
 import { type ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { getCaptureById } from '../storage.ts';
 import { deleteTranscript } from '../transcript-write.ts';
-import { deleteCoworkItem } from '../cowork-write.ts';
+import { deleteActionItem } from '../actions-write.ts';
 import { discordIdToOwner } from '../identity.ts';
 
 export async function handleDelete(ix: ChatInputCommandInteraction): Promise<void> {
@@ -30,7 +30,7 @@ export async function handleDelete(ix: ChatInputCommandInteraction): Promise<voi
   const transcriptDeleted = await deleteTranscript(c);
   let itemsDeleted = 0;
   for (const itemId of c.extractedItemIds) {
-    if (await deleteCoworkItem(itemId, `GDPR delete capture ${id} by ${ix.user.username}`)) itemsDeleted += 1;
+    if (await deleteActionItem(itemId, `GDPR delete capture ${id} by ${ix.user.username}`)) itemsDeleted += 1;
   }
-  await ix.editReply(`Capture ${id}: transcript ${transcriptDeleted ? 'deleted' : 'not found'}, cowork items removed: ${itemsDeleted}/${c.extractedItemIds.length}. Raw audio was already auto-deleted at 24h.`);
+  await ix.editReply(`Capture ${id}: transcript ${transcriptDeleted ? 'deleted' : 'not found'}, action items removed: ${itemsDeleted}/${c.extractedItemIds.length}. Raw audio was already auto-deleted at 24h.`);
 }

@@ -43,26 +43,15 @@ In Discord, enable **Developer Mode** (User Settings -> Advanced -> Developer Mo
 
 ---
 
-## Section 2 - GitHub PATs (do once, ~3 min)
+## Section 2 - GitHub PAT (do once, ~2 min)
 
-Two fine-grained PATs. NARROW SCOPING IS CRITICAL - the bot only writes 2 file paths.
+ONE fine-grained PAT (v0.3+). ZAOscribe writes both `data/actions.json` + `data/transcripts/` to its OWN repo - no cross-org token, no Iman approval needed.
 
-### 2.1 Cowork actions PAT (writes to cowork-zaodevz)
+### 2.1 Zaoscribe PAT (writes to bettercallzaal/zaoscribe)
 
 1. https://github.com/settings/personal-access-tokens/new
-2. Token name: `zaoscribe-cowork-write`
+2. Token name: `zaoscribe-write`
 3. Expiration: 1 year (set a reminder; rotate annually)
-4. Resource owner: `songchaindao-dot`
-5. Repository access: **Only select repositories** -> `cowork-zaodevz`
-6. Repository permissions:
-   - **Contents**: Read and write
-7. Generate, copy -> save as `COWORK_GITHUB_TOKEN`
-
-### 2.2 Zaoscribe transcripts PAT (writes to bettercallzaal/zaoscribe)
-
-1. https://github.com/settings/personal-access-tokens/new
-2. Token name: `zaoscribe-transcripts-write`
-3. Expiration: 1 year
 4. Resource owner: `bettercallzaal`
 5. Repository access: **Only select repositories** -> `zaoscribe`
 6. Repository permissions:
@@ -120,9 +109,9 @@ chmod +x scripts/install-whisper.sh
 cp .env.example .env
 chmod 600 .env
 vi .env
-# Paste in all 7 required vars from sections 1-4 above
+# Paste in all 6 required vars from sections 1-4 above
 # (DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_GUILD_ID, DISCORD_COWORKING_VC_ID,
-#  OPENROUTER_API_KEY, COWORK_GITHUB_TOKEN, ZAOSCRIBE_GITHUB_TOKEN)
+#  OPENROUTER_API_KEY, ZAOSCRIBE_GITHUB_TOKEN)
 # Optional: OPENAI_API_KEY  (Whisper fallback)
 
 # 5. Install node deps
@@ -252,7 +241,7 @@ git push
 | Bot starts then immediately exits | Missing env var | Check `journalctl ... -n 50` for `Missing required env var:` line |
 | Bot online but `/scribe` commands don't appear | `npm run register` not run yet | Run it (Section 5.1 step 6); Discord caches for a minute |
 | Bot joins VC but no transcript | Whisper.cpp not installed | Re-run `scripts/install-whisper.sh` |
-| `data/actions.json` write failed | PAT scope too narrow OR token expired | Regenerate `COWORK_GITHUB_TOKEN` per Section 2.1 |
+| `data/actions.json` write failed | PAT scope too narrow OR token expired | Regenerate `ZAOSCRIBE_GITHUB_TOKEN` per Section 2.1 |
 | Transcript commit failed | `ZAOSCRIBE_GITHUB_TOKEN` problem | Regenerate per Section 2.2 |
 | Bot in wrong nickname state (stuck on `[REC]`) | Crash before nickname restore | Manually rename in server settings; will self-correct on next capture cycle |
 | Iman doesn't show up as owner | Display name mismatch | Iman runs `/scribe link Iman` once |

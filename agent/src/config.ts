@@ -24,16 +24,16 @@ export const CONFIG = {
     apiKey: required('OPENROUTER_API_KEY'),
   },
   github: {
-    coworkToken: required('COWORK_GITHUB_TOKEN'),
+    // v0.3+: one PAT for both actions + transcripts on bettercallzaal/zaoscribe.
+    // Dropped the cross-org cowork PAT - keeps setup simpler + no Iman approval
+    // dependency. Same JSON schema as cowork-zaodevz so a sync layer can be
+    // added later if both bots need to share state.
     zaoscribeToken: required('ZAOSCRIBE_GITHUB_TOKEN'),
-    coworkOwner: 'songchaindao-dot',
-    coworkRepo: 'cowork-zaodevz',
-    coworkPath: 'data/actions.json',
-    coworkBranch: 'main',
     zaoscribeOwner: 'bettercallzaal',
     zaoscribeRepo: 'zaoscribe',
-    zaoscribeTranscriptDir: 'data/transcripts',
     zaoscribeBranch: 'main',
+    actionsPath: 'data/actions.json',
+    zaoscribeTranscriptDir: 'data/transcripts',
   },
   openai: {
     // Optional fallback for Whisper API

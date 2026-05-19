@@ -5,7 +5,7 @@ import type { Client, GuildTextBasedChannel, VoiceBasedChannel, TextBasedChannel
 import { ChannelType } from 'discord.js';
 import { buildTranscriptFromSegments } from './transcribe.ts';
 import { extractActionItems } from './extract.ts';
-import { createCoworkItems } from './cowork-write.ts';
+import { createActionItems } from './actions-write.ts';
 import { commitTranscript, transcriptGithubUrl } from './transcript-write.ts';
 import { queueConfirm } from './confirm-flow.ts';
 import { recordCapture } from './storage.ts';
@@ -71,9 +71,9 @@ export async function processAndArchive(
     else queue.push(it);
   }
 
-  // Step D - Create cowork items for auto-write list.
+  // Step D - Write the auto-write list to the action tracker (own repo).
   const speakerLabel = capture.segments.length > 0 ? capture.segments[0].owner : 'zaoscribe';
-  const ids = await createCoworkItems(
+  const ids = await createActionItems(
     autoWrite.map((it) => ({
       title: it.title,
       owner: it.owner,

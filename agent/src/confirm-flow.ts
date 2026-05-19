@@ -17,7 +17,7 @@ import {
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { CONFIG } from './config.ts';
-import { createCoworkItem } from './cowork-write.ts';
+import { createActionItem } from './actions-write.ts';
 import type { ExtractedItem } from './types.ts';
 
 interface PendingConfirm {
@@ -103,7 +103,7 @@ export async function handleConfirmButton(interaction: Interaction): Promise<boo
 
   if (action === 'confirm') {
     try {
-      const id = await createCoworkItem({
+      const id = await createActionItem({
         title: row.item.title,
         owner: row.item.owner,
         createdBy: `zaoscribe (${(ix.user as User).username})`,
@@ -111,7 +111,7 @@ export async function handleConfirmButton(interaction: Interaction): Promise<boo
         due: row.item.due,
       });
       await ix.update({
-        content: id ? `Added cowork item #${id}: ${describeItem(row.item)}` : 'Add failed (cowork API). Try again later.',
+        content: id ? `Added action #${id}: ${describeItem(row.item)}` : 'Add failed (GitHub API). Try again later.',
         components: [],
       });
     } catch (err) {

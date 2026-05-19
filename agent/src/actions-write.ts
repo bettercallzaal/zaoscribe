@@ -1,6 +1,7 @@
-// Octokit SHA-dance write to songchaindao-dot/cowork-zaodevz/data/actions.json.
-// Mirrors cowork-zaodevz/agent/src/actions-store.ts:mutateActions pattern.
-// 3x retry on 409/422 conflicts (concurrent edits from the cowork bot).
+// Octokit SHA-dance write to bettercallzaal/zaoscribe/data/actions.json.
+// Self-hosted action tracker (v0.3+) - no cross-org PAT, no songchaindao-dot
+// dependency. Same JSON schema as cowork-zaodevz so future migration / sync
+// stays trivial. 3x retry on 409/422 (race with manual edits).
 
 import { Octokit } from '@octokit/rest';
 import { CONFIG } from './config.ts';
@@ -8,34 +9,43 @@ import type { ActionsFile, ActionItem, Owner, Priority } from './types.ts';
 
 let cached: Octokit | null = null;
 function octokit(): Octokit {
-  cached ??= new Octokit({ auth: CONFIG.github.coworkToken });
+  cached ??= new Octokit({ auth: CONFIG.github.zaoscribeToken });
   return cached;
 }
 
 async function fetchActions(): Promise<{ data: ActionsFile; sha: string }> {
-  const res = await octokit().repos.getContent({
-    owner: CONFIG.github.coworkOwner,
-    repo: CONFIG.github.coworkRepo,
-    path: CONFIG.github.coworkPath,
-    ref: CONFIG.github.coworkBranch,
-  });
-  if (Array.isArray(res.data) || res.data.type !== 'file') {
-    throw new Error(`expected file at ${CONFIG.github.coworkPath}`);
+  try {
+    const res = await octokit().repos.getContent({
+      owner: CONFIG.github.zaoscribeOwner,
+      repo: CONFIG.github.zaoscribeRepo,
+      path: CONFIG.github.actionsPath,
+      ref: CONFIG.github.zaoscribeBranch,
+    });
+    if (Array.isArray(res.data) || res.data.type !== 'file') {
+      throw new Error(`expected file at ${CONFIG.github.actionsPath}`);
+    }
+    const content = Buffer.from(res.data.content, 'base64').toString('utf8');
+    const data = JSON.parse(content) as ActionsFile;
+    return { data, sha: res.data.sha };
+  } catch (err) {
+    // If file doesn't exist yet, return an empty document (first-ever write).
+    if ((err as { status?: number }).status === 404) {
+      return { data: { updatedAt: new Date().toISOString(), items: [] }, sha: '' };
+    }
+    throw err;
   }
-  const content = Buffer.from(res.data.content, 'base64').toString('utf8');
-  const data = JSON.parse(content) as ActionsFile;
-  return { data, sha: res.data.sha };
 }
 
 async function commitActions(data: ActionsFile, sha: string, message: string): Promise<string> {
   data.updatedAt = new Date().toISOString();
   const res = await octokit().repos.createOrUpdateFileContents({
-    owner: CONFIG.github.coworkOwner,
-    repo: CONFIG.github.coworkRepo,
-    path: CONFIG.github.coworkPath,
-    branch: CONFIG.github.coworkBranch,
+    owner: CONFIG.github.zaoscribeOwner,
+    repo: CONFIG.github.zaoscribeRepo,
+    path: CONFIG.github.actionsPath,
+    branch: CONFIG.github.zaoscribeBranch,
     message,
-    sha,
+    // Omit sha entirely on first-ever write (when fetchActions returned empty).
+    ...(sha ? { sha } : {}),
     content: Buffer.from(JSON.stringify(data, null, 2)).toString('base64'),
   });
   const newSha = res.data.content?.sha;
@@ -81,11 +91,11 @@ async function mutate<T>(
       await new Promise((r) => setTimeout(r, backoffMs));
     }
   }
-  throw new Error(`cowork mutation failed after ${maxAttempts} attempts: ${lastErr?.message}`);
+  throw new Error(`actions mutation failed after ${maxAttempts} attempts: ${lastErr?.message}`);
 }
 
 // Create one item; returns the new ID.
-export async function createCoworkItem(input: CreateItemInput): Promise<string | null> {
+export async function createActionItem(input: CreateItemInput): Promise<string | null> {
   return mutate<string>(async (data) => {
     const now = new Date().toISOString();
     const item: ActionItem = {
@@ -115,23 +125,23 @@ export async function createCoworkItem(input: CreateItemInput): Promise<string |
   });
 }
 
-// Batch create - one commit per item to avoid massive diffs, but parallel-safe.
-export async function createCoworkItems(inputs: CreateItemInput[]): Promise<string[]> {
+// Batch create - one commit per item to avoid massive diffs.
+export async function createActionItems(inputs: CreateItemInput[]): Promise<string[]> {
   const ids: string[] = [];
   for (const input of inputs) {
     try {
-      const id = await createCoworkItem(input);
+      const id = await createActionItem(input);
       if (id) ids.push(id);
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.warn(`[zaoscribe] cowork-write: createCoworkItem failed for "${input.title}": ${(err as Error).message}`);
+      console.warn(`[zaoscribe] actions-write: createActionItem failed for "${input.title}": ${(err as Error).message}`);
     }
   }
   return ids;
 }
 
 // Best-effort delete by ID (used by /scribe delete <captureId>).
-export async function deleteCoworkItem(id: string, reason: string): Promise<boolean> {
+export async function deleteActionItem(id: string, reason: string): Promise<boolean> {
   try {
     const result = await mutate<boolean>(async (data) => {
       const idx = data.items.findIndex((i) => i.id === id);

@@ -6,9 +6,9 @@ Invoke `/worksession` before any work. Each terminal gets its own `ws/` branch.
 
 ## What This Is
 
-ZAOscribe is a Discord audio capture bot. It joins voice channels, transcribes per-speaker audio, extracts action items via LLM, and writes them to the shared `cowork-zaodevz/data/actions.json`. Spec at ZAOOS `research/agents/674-zaoscribe-discord-best-plan/`.
+ZAOscribe is a Discord audio capture bot. It joins voice channels, transcribes per-speaker audio, extracts action items via LLM, and writes them to its OWN action tracker at `bettercallzaal/zaoscribe/data/actions.json`. Spec at ZAOOS `research/agents/674-zaoscribe-discord-best-plan/`.
 
-It is a SIBLING bot to `@ZAOcoworkingBot` (the Telegram action tracker). They share the same `data/actions.json` on GitHub but write independently via Octokit.
+v0.3+ - self-hosted action tracker (was cross-org write to cowork-zaodevz in v0.1-0.2; dropped to remove org-PAT dependency). Same JSON schema as cowork-zaodevz so a sync layer can bridge the two later if both bots need shared state.
 
 ## Stack
 
@@ -57,7 +57,7 @@ discord.js voiceStateUpdate / interactionCreate
 
 ## Safety
 
-- NEVER expose `DISCORD_TOKEN`, `OPENROUTER_API_KEY`, `COWORK_GITHUB_TOKEN`, `ZAOSCRIBE_GITHUB_TOKEN`, `OPENAI_API_KEY` (fallback)
+- NEVER expose `DISCORD_TOKEN`, `OPENROUTER_API_KEY`, `ZAOSCRIBE_GITHUB_TOKEN`, `OPENAI_API_KEY` (fallback)
 - Hard-coded `GUILD_ID` env check at startup - bot refuses to operate in any other guild
 - Filter `member.user.bot === true` before subscribing to anyone's audio
 - Roster gate before any audio capture (only Zaal/Iman/ThyRev/Samantha)
