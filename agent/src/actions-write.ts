@@ -9,6 +9,9 @@ import type { ActionsFile, ActionItem, Owner, Priority } from './types.ts';
 
 let cached: Octokit | null = null;
 function octokit(): Octokit {
+  if (!CONFIG.github.zaoscribeToken) {
+    throw new Error('ZAOSCRIBE_GITHUB_TOKEN not set - action writes disabled. Add it to .env + restart.');
+  }
   cached ??= new Octokit({ auth: CONFIG.github.zaoscribeToken });
   return cached;
 }

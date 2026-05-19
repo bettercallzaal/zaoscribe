@@ -7,6 +7,9 @@ import type { Capture } from './types.ts';
 
 let cached: Octokit | null = null;
 function octokit(): Octokit {
+  if (!CONFIG.github.zaoscribeToken) {
+    throw new Error('ZAOSCRIBE_GITHUB_TOKEN not set - transcript writes disabled. Add it to .env + restart.');
+  }
   cached ??= new Octokit({ auth: CONFIG.github.zaoscribeToken });
   return cached;
 }

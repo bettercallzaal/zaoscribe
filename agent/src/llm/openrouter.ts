@@ -7,6 +7,9 @@ import { CONFIG } from '../config.ts';
 
 let cached: OpenAI | null = null;
 export function getOpenRouter(): OpenAI {
+  if (!CONFIG.openrouter.apiKey) {
+    throw new Error('OPENROUTER_API_KEY not set - extraction disabled. Add it to .env + restart.');
+  }
   cached ??= new OpenAI({
     apiKey: CONFIG.openrouter.apiKey,
     baseURL: 'https://openrouter.ai/api/v1',

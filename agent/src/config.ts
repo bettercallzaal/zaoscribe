@@ -21,14 +21,19 @@ export const CONFIG = {
     coworkingVcId: required('DISCORD_COWORKING_VC_ID'),
   },
   openrouter: {
-    apiKey: required('OPENROUTER_API_KEY'),
+    // v0.3.1: optional at boot so the bot can connect to Discord + capture
+    // audio for testing before extraction is wired. Empty = extraction step
+    // throws a clear error at call time; the pipeline degrades gracefully.
+    apiKey: optional('OPENROUTER_API_KEY', ''),
   },
   github: {
     // v0.3+: one PAT for both actions + transcripts on bettercallzaal/zaoscribe.
     // Dropped the cross-org cowork PAT - keeps setup simpler + no Iman approval
     // dependency. Same JSON schema as cowork-zaodevz so a sync layer can be
     // added later if both bots need to share state.
-    zaoscribeToken: required('ZAOSCRIBE_GITHUB_TOKEN'),
+    // v0.3.1: optional at boot - empty = action/transcript writes throw a
+    // clear error at call time, bot still boots + records.
+    zaoscribeToken: optional('ZAOSCRIBE_GITHUB_TOKEN', ''),
     zaoscribeOwner: 'bettercallzaal',
     zaoscribeRepo: 'zaoscribe',
     zaoscribeBranch: 'main',
@@ -68,6 +73,8 @@ export function maskedConfigSummary(): string {
     `whisper.model=${CONFIG.whisper.modelPath}`,
     `confidenceAutoWrite=${CONFIG.behaviour.confidenceAutoWrite}`,
     `log=${CONFIG.log.level}`,
+    `openrouter=${CONFIG.openrouter.apiKey ? 'enabled' : 'NOT SET (extraction disabled)'}`,
+    `github=${CONFIG.github.zaoscribeToken ? 'enabled' : 'NOT SET (writes disabled)'}`,
     `openai.fallback=${CONFIG.openai.apiKey ? 'enabled' : 'disabled'}`,
   ].join(' ');
 }
